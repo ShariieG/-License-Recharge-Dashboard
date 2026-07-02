@@ -58,7 +58,106 @@ The model is built around a central `Bayobab` table (license assignments at the 
 - Distinguishes between **assigned licenses** and **license group membership** to avoid double-counting users across bundled SKUs
 - Uses **Department Group** logic to roll individual Bayobab entities (FibreCo Zambia, Nigeria, Uganda, Ghana, CIV, CAR, South Africa, etc.) up into consolidated reporting groups
 - DAX measures handle cost allocation per department, per SKU, and category-level rollups (Productivity & Collaboration / Specialized, Data & Development / Security, Infrastructure & Creative)
+### Key DAX Formulas
 
+**License Cost (ZAR)** — maps raw license names to standardized product names, looks up the unit cost, converts USD → ZAR, and sums across all rows:
+
+```dax
+License Cost (ZAR) = 
+VAR _ExchangeRate = 18
+RETURN
+    SUMX(
+        Bayobob,
+        VAR _RawProduct = Bayobob[Total Licenses]
+        VAR _MappedProduct =
+            SWITCH(
+                TRUE(),
+                _RawProduct = "GitHub", "GitHub User",
+                _RawProduct = "Microsoft 365 E5", "Microsoft 365 E5s",
+                _RawProduct = "Microsoft 365 E5 Nopstnconf", "Microsoft 365 E5s",
+                _RawProduct = "Office 365 E1", "Microsoft Office 365 E1",
+                _RawProduct = "Powerapps Per User", "PowerApps Per User",
+                _RawProduct = "Project Online Essentials", "Microsoft Project Essentials",
+                _RawProduct = "Project Online Premium", "Microsoft Project Premium",
+                _RawProduct = "Project Online Professional", "Microsoft Project Professional",
+                _RawProduct
+            )
+        VAR _UnitCost =
+            LOOKUPVALUE(
+                'Software Licensing Costs'[Unit Cost],
+                'Software Licensing Costs'[Software Product], _MappedProduct
+            )
+        RETURN
+            _UnitCost * 3 * _ExchangeRate
+    )
+```
+
+**Product Summary Table** — a calculated table built with `UNION`/`ROW` that normalizes raw license names into standardized software product names and counts active licenses per product, used as the base for the Recharge Schedule and SKU breakdown visuals:
+
+```dax
+Product Summary Table = UNION(
+    ROW(
+        "Software Product", "Adobe CC", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Adobe CC")) + 0
+    ),
+    ROW(
+        "Software Product", "Adobe Pro", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Adobe Pro")) + 0
+    ),
+    ROW(
+        "Software Product", "Enterprise Mobility + Security E3", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Enterprise Mobility + Security E3")) + 0
+    ),
+    ROW(
+        "Software Product", "GitHub User", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "GitHub")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft 365 Copilot", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Microsoft 365 Copilot")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft 365 E5s", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses','Total Licenses'[Total Licenses] = "Microsoft 365 E5 Nopstnconf" || 'Total Licenses'[Total Licenses] = "Microsoft 365 E5")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft Defender Threat Intelligence", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Microsoft Defender Threat Intelligence")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft Visio", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Microsoft Visio")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft Workplace Analytics", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Microsoft Workplace Analytics")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft Office 365 E1", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Office 365 E1")) + 0
+    ),
+    ROW(
+        "Software Product", "Power Automate Per User", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Power Automate Per User")) + 0
+    ),
+    ROW(
+        "Software Product", "PowerApps Per User", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Powerapps Per User")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft Project Essentials", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Project Online Essentials")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft Project Premium", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Project Online Premium")) + 0
+    ),
+    ROW(
+        "Software Product", "Microsoft Project Professional", 
+        "Active Count", COUNTROWS(FILTER('Total Licenses', 'Total Licenses'[Total Licenses] = "Project Online Professional")) + 0
+    )
+)
+```
 ## Tech Stack
 
 - **Power BI** — data model, DAX measures, primary reporting dashboard
