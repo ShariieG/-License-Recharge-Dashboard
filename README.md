@@ -43,7 +43,7 @@ A stacked bar chart showing exactly which SKUs make up each department's recharg
 
 The model is built around a central `Bayobab` table (license assignments at the employee level) joined to supporting dimension and reference tables:
 
-<img width="2400" height="1280" alt="quarter-summary-mockup" src="https://github.com/user-attachments/assets/94d069d4-9266-47be-85f4-acce3661f6d1" />
+
 <img width="355" height="1142" alt="data-model" src="https://github.com/user-attachments/assets/f8b3d2ed-0cc1-45df-bcd7-45bccba7b0e1" />
 
 
